@@ -295,7 +295,7 @@ impl ParamType for u64 {
     // Selectors in xiAPI are defined as unsigned int, but treated as if they were signed
     unsafe fn get_param(handle: HANDLE, prm: *const c_char, value: &mut Self) -> XI_RETURN {
         let mut size: DWORD = std::mem::size_of::<Self>() as DWORD;
-        let mut xi_type_integer64: u32 = XI_PRM_TYPE::xiTypeInteger64 as u32;
+        let mut xi_type_integer64 = XI_PRM_TYPE::xiTypeInteger64;
         xiapi_sys::xiGetParam(
             handle,
             prm,
@@ -312,6 +312,41 @@ impl ParamType for u64 {
             &value as *const _ as *mut std::os::raw::c_void,
             std::mem::size_of::<Self>() as DWORD, XI_PRM_TYPE::xiTypeInteger64
         )
+    }
+}
+
+impl ParamType for String {
+    // Selectors in xiAPI are defined as unsigned int, but treated as if they were signed
+    unsafe fn get_param(handle: HANDLE, prm: *const c_char, value: &mut Self) -> XI_RETURN {
+        let string_len = 256;
+        let mut string_buf: Vec<std::ffi::c_char> = vec![0; string_len];
+
+        let err = xiapi_sys::xiGetParamString(
+            handle,
+            prm,
+            string_buf.as_mut_ptr() as *mut std::os::raw::c_void,
+            string_len as u32,
+        );
+
+        if err as XI_RET::Type == XI_RET::XI_OK {
+            match std::ffi::CStr::from_ptr(string_buf.as_ptr()).to_str() {
+                Err(_) => return XI_RET::XI_INVALID_ARG as XI_RETURN,
+                Ok(s) => *value = s.to_string(),
+            }
+        }
+        return err;
+    }
+
+    unsafe fn set_param(handle: HANDLE, prm: *const c_char, value: Self) -> XI_RETURN {
+        match std::ffi::CStr::from_bytes_with_nul(value.as_bytes()) {
+            Ok(c) => xiapi_sys::xiSetParamString(
+                handle,
+                prm,
+                c.as_ptr() as *mut std::os::raw::c_void,
+                value.len() as u32,
+            ),
+            Err(_) => XI_RET::XI_INVALID_ARG as XI_RETURN,
+        }
     }
 }
 
@@ -517,6 +552,12 @@ impl Camera {
         Ok(size as usize * unit as usize)
     }
 
+    /// Size of the acquisition buffer in bytes
+    pub fn acq_buffer_size_maximum(&self) -> Result<usize, XI_RETURN> {
+        let size = unsafe { self.param_max::<i32>(XI_PRM_ACQ_BUFFER_SIZE) }?;
+        let unit = unsafe { self.param::<i32>(XI_PRM_ACQ_BUFFER_SIZE_UNIT) }?;
+        Ok(size as usize * unit as usize)
+    }
 
     param! {
         /// Current exposure time in microseconds.
@@ -668,7 +709,7 @@ impl Camera {
         timestamp: u64;
 
         /// Data move policy
-        mut buffer_policy: i32;
+        mut buffer_policy: XI_BP::Type;
 
         /// buffers_queue_size - 1 is the maximum number of images which can be stored in the buffers queue.
         mut buffers_queue_size: i32;
@@ -690,6 +731,36 @@ impl Camera {
 
         /// Configures image data delivery target to CPU RAM (default) or GPU RAM.
         mut transport_data_target: XI_TRANSPORT_DATA_TARGET_MODE::Type;
+
+        /// Device serial
+        device_sn: String;
+
+        /// ??
+        mut acq_transport_buffer_size: u32;
+
+        /// ??
+        mut sensor_output_channel_count: XI_SENSOR_OUTPUT_CHANNEL_COUNT::Type;
+
+        /// ??
+        mut acq_transport_buffer_commit: u32;
+
+        /// ??
+        mut aeag: XI_SWITCH::Type;
+
+        /// ??
+        mut bpc: XI_SWITCH::Type;
+
+        /// ??
+        mut gentl_datastream_enabled: XI_SWITCH::Type;
+
+        /// ??
+        mut output_data_packing: XI_SWITCH::Type;
+
+        /// ??
+        mut output_data_packing_type: xiapi_sys::XI_OUTPUT_DATA_PACKING_TYPE::Type;
+
+        ///??
+        mut limit_bandwidth_mode: XI_SWITCH::Type;
     }
 }
 

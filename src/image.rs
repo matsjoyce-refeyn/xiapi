@@ -88,7 +88,7 @@ impl<'a, T> Image<'a, T> {
 
     /// Current format of the pixels on transport layer
     pub fn transport_format(&self) -> xiapi_sys::XI_IMG_FORMAT::Type {
-        self.xi_img.transport_frm
+        self.xi_img.transport_frm as xiapi_sys::XI_IMG_FORMAT::Type
     }
 
     /// Horizontal downsampling
