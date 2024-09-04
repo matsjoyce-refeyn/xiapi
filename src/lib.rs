@@ -9,7 +9,9 @@
 //! (via bindgen) from the XIMEA C API.
 
 #![warn(missing_docs)]
+#![recursion_limit = "512"]
 
+pub use self::camera::device_info_string;
 pub use self::camera::number_devices;
 pub use self::camera::open_device;
 pub use self::camera::open_device_manual_bandwidth;

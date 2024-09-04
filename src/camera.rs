@@ -239,6 +239,47 @@ pub fn number_devices() -> Result<u32, XI_RETURN> {
     }
 }
 
+/// Returns information about a camera
+///
+/// `param` should be one of:
+///
+///  - [crate::XI_PRM_DEVICE_SN]
+///  - [crate::XI_PRM_DEVICE_NAME]
+///  - [crate::XI_PRM_DEVICE_INSTANCE_PATH]
+///  - [crate::XI_PRM_DEVICE_LOCATION_PATH]
+///  - [crate::XI_PRM_DEVICE_TYPE]
+pub fn device_info_string(device_id: u32, param: &[u8]) -> Result<String, XI_RETURN> {
+    let param_c = match CStr::from_bytes_with_nul(param) {
+        Ok(c) => c,
+        Err(_) => return Err(XI_RET::XI_INVALID_ARG as XI_RETURN),
+    };
+    let string_len = 256;
+    let mut string_buf: Vec<c_char> = vec![0; string_len];
+
+    let err: XI_RETURN;
+    unsafe {
+        err = xiGetDeviceInfoString(
+            device_id,
+            param_c.as_ptr(),
+            string_buf.as_mut_ptr(),
+            string_len as DWORD,
+        );
+    }
+    match err as XI_RET::Type {
+        XI_RET::XI_OK => {
+            let value: String;
+            unsafe {
+                value = CStr::from_ptr(string_buf.as_ptr())
+                    .to_str()
+                    .map_err(|_| XI_RET::XI_INVALID_ARG as XI_RETURN)?
+                    .to_string();
+            }
+            return Ok(value);
+        }
+        _ => Err(err),
+    }
+}
+
 impl Drop for Camera {
     fn drop(&mut self) {
         unsafe {
@@ -759,8 +800,23 @@ impl Camera {
         /// ??
         mut output_data_packing_type: xiapi_sys::XI_OUTPUT_DATA_PACKING_TYPE::Type;
 
-        ///??
+        /// ??
         mut limit_bandwidth_mode: XI_SWITCH::Type;
+
+        /// ??
+        api_version: String;
+        /// ??
+        drv_version: String;
+        ///??
+        mcu1_version: String;
+        ///??
+        mcu2_version: String;
+        ///??
+        mcu3_version: String;
+        ///??
+        fpga1_version: String;
+        ///??
+        xmlman_version: String;
     }
 }
 
