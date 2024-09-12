@@ -116,13 +116,11 @@ impl<'a, T> Image<'a, T> {
         self.xi_img.image_user_data
     }
 
-    /// Raw 64-bit timestamp from the camera. Interpretation of this value differs between camera series.
-    /// xiQ, xiD: 40-bit microsecond number - (overlaps after 305 hours)
-    /// xiC, xiB, xiT, xiX: 64-bit 4 nanosecond number (overlaps after 2339 years)
+    /// Raw timestamp from the camera. This timestamp is in microseconds from an unspecified reference point.
     pub fn timestamp_raw(&self) -> u64 {
         let high = self.xi_img.tsSec as u64;
         let low = self.xi_img.tsUSec as u64;
-        (high << 32) | low
+        (high * 1_000_000) + low
     }
 
     /// Get the raw image data as a slice.
