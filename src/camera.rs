@@ -817,6 +817,8 @@ impl Camera {
         fpga1_version: String;
         ///??
         xmlman_version: String;
+        ///??
+        sensor_board_temp: f32;
     }
 }
 
@@ -870,6 +872,11 @@ impl AcquisitionBuffer {
     ///
     pub fn set_gain(&mut self, value: f32) -> Result<(), XI_RETURN> {
         self.camera.set_gain(value)
+    }
+
+    /// Get a read-only reference to the camera
+    pub fn camera(&self) -> &Camera {
+        &self.camera
     }
 
     /// Get the next image.
